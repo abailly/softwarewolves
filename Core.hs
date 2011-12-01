@@ -26,11 +26,7 @@ playWerewolf rand out v (E name f) = do
   input <- getLine
   let (rand', killed) = villagersVote (head input) v' rand
   let (cont', (o', v'')) = run cont v' [[killed]]
-  case endGame v' of
-    None       -> hPutStrLn out (concat $ intersperse "\n" (o ++ o')) >> 
-                  playWerewolf rand' out v'' cont'
-    Werewolves -> hPutStrLn out $ "the werewolves win"
-    Villagers  -> hPutStrLn out $ "the villagers win"
+  continue playWerewolf v'' o' rand' out  v'' cont'
 
 playVillager rand out v (E name f) = do 
   let (eaten, rand')     = werewolfEatsAVillager v rand
