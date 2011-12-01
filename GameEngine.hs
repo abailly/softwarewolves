@@ -15,6 +15,9 @@ data GameStatus = Villagers |
                   Werewolves |
                   None 
                   deriving (Eq, Show, Read)
+
+newtype Engine = E { run :: [String] -> (Engine, [String]) }
+
 -- CODE 
 eat villager (Village alive dead ww) = Village (delete villager alive) (villager : dead) ww
 
@@ -22,7 +25,15 @@ hang = eat
 
 endGame (Village a d w) | all (`elem` w) a = Werewolves
                         | all (`elem` d) w = Villagers
-                                             
+                        | otherwise        = None
+
+oneWerewolf10Villagers = (Village "ABCDEFGHIJK" "" "A")
+
+numberOfVillagers num = oneWerewolf10Villagers
+
+engine :: [String] -> (Engine, [String])
+engine input = (E engine,["A","A"])
+
 -- TESTS
 
 gameEngineTests = TestList [
@@ -42,8 +53,21 @@ gameEngineTests = TestList [
   endGame (Village "BCD" "A" "A") ~?= Villagers,
   
   "game ends with werewolves victory when all alive villagers left are werewolves" ~: 
-  endGame (Village "A" "BCD" "A") ~?= Werewolves
+  endGame (Village "A" "BCD" "A") ~?= Werewolves,
 
+  "game does not end when some villagers are still alive" ~: 
+  endGame (Village "AE" "BCD" "A") ~?= None,
+
+  "game does not end when some werewolves are still alive" ~: 
+  endGame (Village "AB" "CD" "B") ~?= None,
+
+  "reading number of villagers always creates the same village" ~: TestList [
+    numberOfVillagers "5" ~?= oneWerewolf10Villagers,
+    numberOfVillagers "12" ~?= oneWerewolf10Villagers
+    ],
+  
+  "engine first reads number of villagers then output werewolves" ~: 
+  snd (engine ["5"]) ~?= ["A","A"]
   ]
                   
 newtype Tests = T {unT :: Test}
