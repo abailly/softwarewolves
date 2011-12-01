@@ -34,11 +34,14 @@ playVillager rand out v (E name f) = do
   nextStep rand out playVillager v' cont o
   
 nextStep rand out f v' cont o  = do
-  input <- getLine
-  let (rand', killed) = villagersVote (head input) v' rand
+  villager <- getVillager
+  let (rand', killed) = villagersVote villager v' rand
   let (cont', (o', v'')) = run cont v' [[killed]]
   continue f v'' o' rand' out  v'' cont'
 
+  where
+    getVillager = getLine >>= return . head
+  
 continue f v' o' rand'' out v'' cont' =   
   case endGame v' of
     None       -> hPutStrLn out (concat $ intersperse "\n" o') >> 
