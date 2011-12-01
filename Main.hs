@@ -2,10 +2,12 @@ import System.IO
 import GameEngine
 import Data.List(intersperse)
 
-main = playgame startup 
+main = hSetBuffering stdout NoBuffering >> 
+       playgame oneWerewolf10Villagers (E "startup" (\v -> startup))
 
-playgame e = do input <- getLine 
-                let (E cont, (o, v)) = e [input]
-                case endGame v of
-                  None -> putStrLn ((concat $ intersperse "\n" o) ++ " -> " ++ show v) >> playgame (cont v)
-                  win  -> putStrLn $ show win
+playgame v (E name f) = do putStr $ name ++ " > "
+                           input <- getLine 
+                           let (cont, (o, v')) = f v [input]
+                           case endGame v' of
+                             None -> putStrLn ((concat $ intersperse "\n" o)) >> playgame v' cont
+                             win  -> putStrLn $ show win

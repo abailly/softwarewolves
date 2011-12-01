@@ -16,14 +16,17 @@ data GameStatus = Villagers |
                   None 
                   deriving (Eq, Show, Read)
 
-newtype Engine = E { run :: Village -> [String] -> (Engine, ([String], Village)) }
+data Engine = E { name :: String,
+                  run :: Village -> [String] -> (Engine, ([String], Village)) }
 
 -- CODE 
 eat villager (Village alive dead ww) = Village (delete villager alive) (villager : dead) ww
 
 hang = eat
 
-endGame (Village a d w) | all (`elem` w) a = Werewolves
+endGame (Village a d w) | length (a `intersect` w) >=  
+                          length (a \\ w) 
+                                           = Werewolves
                         | all (`elem` d) w = Villagers
                         | otherwise        = None
 
@@ -32,18 +35,21 @@ oneWerewolf10Villagers = (Village "ABCDEFGHIJK" "" "A")
 numberOfVillagers num = oneWerewolf10Villagers
 
 startup :: [String] -> (Engine, ([String], Village))
-startup input = (E $ night,(["A","A"], oneWerewolf10Villagers))
+startup input = (nightTurn,(["A","A"], oneWerewolf10Villagers))
+
+nightTurn = E "night" night
+dayTurn   = E "day" day
 
 night :: Village -> [String] -> (Engine, ([String], Village))
-night v [killed] = (E $ night, ([killed], eat (head killed) v))
+night v [killed] = (dayTurn, ([killed], eat (head killed) v))
 
 day :: Village -> [String] -> (Engine, ([String], Village))
-day v [killed] = (E $ day, ([killed], eat (head killed) v))
+day v [killed] = (nightTurn, ([killed], eat (head killed) v))
 
 engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
 engine e []       = []
-engine e (s:rest) = let (E cont, (o, v)) = e [s]
-                    in o ++ engine (cont v) rest  
+engine e (s:rest) = let (cont, (o, v)) = e [s]
+                    in o ++ engine (run cont v) rest  
 
 -- TESTS
 
@@ -63,14 +69,17 @@ gameEngineTests = TestList [
   "game ends with villagers victory iff all werewolves are dead" ~: 
   endGame (Village "BCD" "A" "A") ~?= Villagers,
   
-  "game ends with werewolves victory when all alive villagers left are werewolves" ~: 
-  endGame (Village "A" "BCD" "A") ~?= Werewolves,
+  "game does not ends when nobody is dead" ~: 
+  endGame (Village "BCD" "" "A") ~?= None,
   
-  "game does not end when some villagers are still alive" ~: 
-  endGame (Village "AE" "BCD" "A") ~?= None,
+  "game ends with werewolves victory when number of alive villagers left is equal to number of alive werewolves" ~: 
+  endGame (Village "AE" "BCD" "A") ~?= Werewolves,
+  
+  "game does not end when enough villagers are still alive" ~: 
+  endGame (Village "AFE" "BCD" "A") ~?= None,
 
   "game does not end when some werewolves are still alive" ~: 
-  endGame (Village "AB" "CD" "B") ~?= None,
+  endGame (Village "BEF" "CD" "AB") ~?= None,
 
   "reading number of villagers always creates the same village" ~: TestList [
     numberOfVillagers "5" ~?= oneWerewolf10Villagers,
