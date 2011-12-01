@@ -3,7 +3,6 @@ import GameEngine
 import Data.List(intersperse)
 import System.Random 
 
-
 main = hSetBuffering stdout NoBuffering >> do
   rand   <- newStdGen
   
@@ -22,14 +21,15 @@ main = hSetBuffering stdout NoBuffering >> do
     playVillager rand stdout v' cont
 
 playWerewolf rand out v (E name f) = do 
-  input <- getLine
-  let (cont, (o, v'))    = f v [input]
+  eaten <- getVillager
+  let (cont, (o, v'))    = f v [[eaten]]
   hPutStrLn out $ concat o
   
   nextStep rand out playWerewolf v' cont
   
 playVillager rand out v (E name f) = do 
   let (eaten, rand')     = werewolfEatsAVillager v rand
+  
   let (cont, (o, v'))    = f v [[eaten]]
   hPutStrLn out $ concat o
   
@@ -41,8 +41,7 @@ nextStep rand out f v' cont = do
   let (cont', (o', v'')) = run cont v' [[killed]]
   continue f v'' o' rand' out  v'' cont'
 
-  where
-    getVillager = getLine >>= return . head
+getVillager = getLine >>= return . head
   
 continue f v' o' rand'' out v'' cont' =   
   case endGame v' of
@@ -50,6 +49,5 @@ continue f v' o' rand'' out v'' cont' =
                   f rand'' out v'' cont'
     Werewolves -> hPutStrLn out $ "the werewolves win"
     Villagers  -> hPutStrLn out $ "the villagers win"
-
 
 -- TESTS
