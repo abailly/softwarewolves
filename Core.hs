@@ -23,20 +23,25 @@ main = hSetBuffering stdout NoBuffering >> do
 playWerewolf rand out v (E name f) = do 
   input <- getLine
   let (cont, (o, v'))    = f v [input]
-  input <- getLine
-  let (rand', killed) = villagersVote (head input) v' rand
-  let (cont', (o', v'')) = run cont v' [[killed]]
-  continue playWerewolf v'' o' rand' out  v'' cont'
-
+  
+  nextStep rand out playWerewolf v' cont o 
+  
 playVillager rand out v (E name f) = do 
   let (eaten, rand')     = werewolfEatsAVillager v rand
   let (cont, (o, v'))    = f v [[eaten]]
   hPutStrLn out $ concat o
+  
   input <- getLine
   let (rand'', killed) = villagersVote (head input) v' rand'
   let (cont', (o', v'')) = run cont v' [[killed]]
   continue playVillager v' o' rand'' out v'' cont'
   
+nextStep rand out f v' cont o  = do
+  input <- getLine
+  let (rand', killed) = villagersVote (head input) v' rand
+  let (cont', (o', v'')) = run cont v' [[killed]]
+  continue f v'' o' rand' out  v'' cont'
+
 continue f v' o' rand'' out v'' cont' =   
   case endGame v' of
     None       -> hPutStrLn out (concat $ intersperse "\n" o') >> 
