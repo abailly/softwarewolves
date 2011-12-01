@@ -31,10 +31,7 @@ playVillager rand out v (E name f) = do
   let (cont, (o, v'))    = f v [[eaten]]
   hPutStrLn out $ concat o
   
-  input <- getLine
-  let (rand'', killed) = villagersVote (head input) v' rand'
-  let (cont', (o', v'')) = run cont v' [[killed]]
-  continue playVillager v' o' rand'' out v'' cont'
+  nextStep rand out playVillager v' cont o
   
 nextStep rand out f v' cont o  = do
   input <- getLine
