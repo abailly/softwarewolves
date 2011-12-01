@@ -32,10 +32,18 @@ oneWerewolf10Villagers = (Village "ABCDEFGHIJK" "" "A")
 numberOfVillagers num = oneWerewolf10Villagers
 
 startup :: [String] -> (Engine, ([String], Village))
-startup input = (E $ playWerewolf,(["A","A"], oneWerewolf10Villagers))
+startup input = (E $ night,(["A","A"], oneWerewolf10Villagers))
 
-playWerewolf :: Village -> [String] -> (Engine, ([String], Village))
-playWerewolf v [killed] = (E $ playWerewolf, ([killed], eat (head killed) v))
+night :: Village -> [String] -> (Engine, ([String], Village))
+night v [killed] = (E $ night, ([killed], eat (head killed) v))
+
+day :: Village -> [String] -> (Engine, ([String], Village))
+day v [killed] = (E $ day, ([killed], eat (head killed) v))
+
+engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
+engine e []       = []
+engine e (s:rest) = let (E cont, (o, v)) = e [s]
+                    in o ++ engine (cont v) rest  
 
 -- TESTS
 
@@ -57,7 +65,7 @@ gameEngineTests = TestList [
   
   "game ends with werewolves victory when all alive villagers left are werewolves" ~: 
   endGame (Village "A" "BCD" "A") ~?= Werewolves,
-
+  
   "game does not end when some villagers are still alive" ~: 
   endGame (Village "AE" "BCD" "A") ~?= None,
 
@@ -73,7 +81,15 @@ gameEngineTests = TestList [
   (fst. snd. startup) ["5"] ~?= ["A","A"],
   
   "playing night turn reads villager killed and output villager killed and updated Village" ~:
-  (snd.playWerewolf oneWerewolf10Villagers) ["B"] ~?= (["B"],eat 'B' oneWerewolf10Villagers)
+  (snd.night oneWerewolf10Villagers) ["B"] ~?= (["B"],eat 'B' oneWerewolf10Villagers),
+  
+  "playing day turn reads villager hanged and output villager killed and updated Village" ~:
+  (snd.day oneWerewolf10Villagers) ["B"] ~?= (["B"],hang 'B' oneWerewolf10Villagers),
+  
+  "engine takes alternating night and day inputs when user plays werewolves" ~: TestList [
+    engine startup (map (:[]) "5BCDEFGHIJK") ~?= map (:[]) "AABCDEFGHIJK",
+    engine startup (map (:[]) "5DEFGHIJKBC") ~?= map (:[]) "AADEFGHIJKBC"
+  ]
   ]
                   
 newtype Tests = T {unT :: Test}
