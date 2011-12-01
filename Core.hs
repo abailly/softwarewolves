@@ -8,7 +8,8 @@ main = hSetBuffering stdout NoBuffering >> do
   rand   <- newStdGen
   
   let (num,_) = next rand
-  let ww = "ABCDEFGHIJK" !! (num `mod` 11)
+ --let ww = "ABCDEFGHIJK" !! (num `mod` 11)
+  let ww = 'A'
   let village = aWerewolf10Villagers ww
   
   input <- getLine
@@ -23,17 +24,18 @@ main = hSetBuffering stdout NoBuffering >> do
 playWerewolf rand out v (E name f) = do 
   input <- getLine
   let (cont, (o, v'))    = f v [input]
+  hPutStrLn out $ concat o
   
-  nextStep rand out playWerewolf v' cont o 
+  nextStep rand out playWerewolf v' cont
   
 playVillager rand out v (E name f) = do 
   let (eaten, rand')     = werewolfEatsAVillager v rand
   let (cont, (o, v'))    = f v [[eaten]]
   hPutStrLn out $ concat o
   
-  nextStep rand out playVillager v' cont o
+  nextStep rand out playVillager v' cont
   
-nextStep rand out f v' cont o  = do
+nextStep rand out f v' cont = do
   villager <- getVillager
   let (rand', killed) = villagersVote villager v' rand
   let (cont', (o', v'')) = run cont v' [[killed]]
