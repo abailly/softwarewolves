@@ -57,6 +57,14 @@ werewolfEatsAVillager (Village a d w) rand =
   in
    (selected, rand')
   
+engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
+engine e []       = []
+engine e (s:rest) = let (cont, (o, v)) = e [s]
+                    in o ++ engine (run cont v) rest  
+
+inverseFrequence :: (Int, a) -> (Int,a) -> Ordering
+inverseFrequence (n,_) (n',_) = n' `compare` n
+
 villagerHangsAWerewolf (Village a d w) rand v = 
   let otherVillagers = if v `elem` w then 
                          (a \\ w) 
@@ -67,18 +75,12 @@ villagerHangsAWerewolf (Village a d w) rand v =
   in
    (rand', selected)
 
-engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
-engine e []       = []
-engine e (s:rest) = let (cont, (o, v)) = e [s]
-                    in o ++ engine (run cont v) rest  
-
-inverseFrequence :: (Int, a) -> (Int,a) -> Ordering
-inverseFrequence (n,_) (n',_) = n' `compare` n
-
 villagersVote userVote v@(Village a d w) rand = 
   (rand', (snd . head . sortBy inverseFrequence) (userVote:votes))
   where
-    (rand', votes)                              = accumulateVotes [] v (a \\ "A") w rand 
+    allVillagersExceptUser                      =  a \\ "A"
+    (rand', votes)                              = accumulateVotes [] v allVillagersExceptUser w rand 
+    
     accumulateVotes votes village []     w rand = (rand, (map (\l -> (length l, head l)) . group . sort) votes)
     accumulateVotes votes village (v:vs) w rand = let (rand', vote) = villagerHangsAWerewolf village rand v 
                                                   in accumulateVotes (vote:votes) village vs w rand'
