@@ -5,6 +5,7 @@ import System.Exit
 import System.IO
 import Data.List
 import System.Random 
+import Control.Arrow
 
 data Village = Village {
   alive :: String,
@@ -56,15 +57,35 @@ werewolfEatsAVillager (Village a d w) rand =
   in
    (selected, rand')
   
+villagerHangsAWerewolf (Village a d w) rand v = 
+  let otherVillagers = if v `elem` w then 
+                         (a \\ w) 
+                       else
+                         (a \\ [v])
+      (num, rand') = next rand
+      selected = otherVillagers !! (num `mod` (length otherVillagers))
+  in
+   (rand', selected)
 
 engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
 engine e []       = []
 engine e (s:rest) = let (cont, (o, v)) = e [s]
                     in o ++ engine (run cont v) rest  
 
+inverseFrequence :: (Int, a) -> (Int,a) -> Ordering
+inverseFrequence (n,_) (n',_) = n' `compare` n
+
+villagersVote userVote v@(Village a d w) rand = 
+  (rand', (snd . head . sortBy inverseFrequence) (userVote:votes))
+  where
+    (rand', votes)                              = accumulateVotes [] v (a \\ "A") w rand 
+    accumulateVotes votes village []     w rand = (rand, (map (\l -> (length l, head l)) . group . sort) votes)
+    accumulateVotes votes village (v:vs) w rand = let (rand', vote) = villagerHangsAWerewolf village rand v 
+                                                  in accumulateVotes (vote:votes) village vs w rand'
 -- TESTS
 
 gameEngineTests = TestList [
+  
   "when a player is designated for eating, it is removed from the villagers and added to dead" ~:
   TestList [
     eat 'B' (Village "BCD" "" "A") ~?= (Village "CD" "B" "A"),
@@ -113,8 +134,20 @@ gameEngineTests = TestList [
   
   "werewolf kills a villager at random" ~: 
   newStdGen >>= return . werewolfEatsAVillager oneWerewolf10Villagers >>=
-  \(c,_) -> assertBool "werewolf should select a villager" (c `elem` "BCDEFGHIJK")
-   
+  \(c,_) -> assertBool "werewolf should select a villager" (c `elem` "BCDEFGHIJK"),
+  
+  "a villager select another villager to hang him" ~: 
+  newStdGen >>= (return . flip (villagerHangsAWerewolf oneWerewolf10Villagers) 'B') >>= 
+  \(_,c) -> assertBool "villager should select another villager but not itself" (c `elem` "ACDEFGHIJK"),
+  
+  "a werewolf does not select another werewolf to hang him" ~: 
+  newStdGen >>= (return . flip (villagerHangsAWerewolf (Village "ABC" "" "AB")) 'A') >>= 
+  \(_,c) -> assertBool "werewolf should not select a werewolf" (c == 'C'),
+  
+  "villagers vote for the hanged villager" ~:
+  newStdGen >>=  (return . villagersVote (1,'C') (Village "ABCDE" "" "AB")) >>=
+  \(_,c) -> assertBool "villagers vote for a hanged villager" (c `elem` "ABCDE")
+  
   ]
                   
 newtype Tests = T {unT :: Test}
