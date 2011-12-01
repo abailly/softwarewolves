@@ -7,6 +7,7 @@ import Data.List
 
 -- CODE 
 eat villager (alive, dead) = (delete villager alive, villager : dead)
+hang = eat
 
 -- TESTS
 
@@ -15,6 +16,11 @@ gameEngineTests = TestList [
   TestList [
     eat 'B' ("BCD","") ~?= ("CD","B"),
     eat 'C' ("BCD","E") ~?= ("BD","CE")  
+    ],
+  "when a player is designated for hanging, it is removed from the villagers and added to dead" ~:
+  TestList [
+    hang 'C' ("BCD","") ~?= ("BD","C"),
+    hang 'D' ("BCD","F") ~?= ("BC","DF")  
     ]
   ]
                   
