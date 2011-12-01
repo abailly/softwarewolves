@@ -4,6 +4,7 @@ import IO(stderr)
 import System.Exit
 import System.IO
 import Data.List
+import System.Random 
 
 data Village = Village {
   alive :: String,
@@ -32,10 +33,12 @@ endGame (Village a d w) | length (a `intersect` w) >=
 
 oneWerewolf10Villagers = (Village "ABCDEFGHIJK" "" "A")
 
+aWerewolf10Villagers ww = (Village "ABCDEFGHIJK" "" [ww])
+
 numberOfVillagers num = oneWerewolf10Villagers
 
-startup :: [String] -> (Engine, ([String], Village))
-startup input = (nightTurn,(["A","A"], oneWerewolf10Villagers))
+startup :: Village -> [String] -> (Engine, ([String], Village))
+startup v@(Village a d w) input = (nightTurn,([w,w],v))
 
 nightTurn = E "night" night
 dayTurn   = E "day" day
@@ -45,6 +48,14 @@ night v [killed] = (dayTurn, ([killed], eat (head killed) v))
 
 day :: Village -> [String] -> (Engine, ([String], Village))
 day v [killed] = (nightTurn, ([killed], eat (head killed) v))
+
+werewolfEatsAVillager (Village a d w) rand =   
+  let aliveVillagers = (a \\ w) 
+      (num, rand') = next rand
+      selected = aliveVillagers !! (num `mod` (length aliveVillagers))
+  in
+   (selected, rand')
+  
 
 engine :: ([String] -> (Engine, ([String], Village))) -> [String] -> [String]
 engine e []       = []
@@ -87,7 +98,7 @@ gameEngineTests = TestList [
     ],
   
   "startup first reads number of villagers then output werewolves" ~: 
-  (fst. snd. startup) ["5"] ~?= ["A","A"],
+  (fst. snd. startup oneWerewolf10Villagers) ["5"] ~?= ["A","A"],
   
   "playing night turn reads villager killed and output villager killed and updated Village" ~:
   (snd.night oneWerewolf10Villagers) ["B"] ~?= (["B"],eat 'B' oneWerewolf10Villagers),
@@ -96,9 +107,14 @@ gameEngineTests = TestList [
   (snd.day oneWerewolf10Villagers) ["B"] ~?= (["B"],hang 'B' oneWerewolf10Villagers),
   
   "engine takes alternating night and day inputs when user plays werewolves" ~: TestList [
-    engine startup (map (:[]) "5BCDEFGHIJK") ~?= map (:[]) "AABCDEFGHIJK",
-    engine startup (map (:[]) "5DEFGHIJKBC") ~?= map (:[]) "AADEFGHIJKBC"
-  ]
+    engine (startup oneWerewolf10Villagers) (map (:[]) "5BCDEFGHIJK") ~?= map (:[]) "AABCDEFGHIJK",
+    engine (startup oneWerewolf10Villagers) (map (:[]) "5DEFGHIJKBC") ~?= map (:[]) "AADEFGHIJKBC"
+  ],
+  
+  "werewolf kills a villager at random" ~: 
+  newStdGen >>= return . werewolfEatsAVillager oneWerewolf10Villagers >>=
+  \(c,_) -> assertBool "werewolf should select a villager" (c `elem` "BCDEFGHIJK")
+   
   ]
                   
 newtype Tests = T {unT :: Test}
