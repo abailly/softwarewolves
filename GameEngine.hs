@@ -26,8 +26,7 @@ eat villager (Village alive dead ww) = Village (delete villager alive) (villager
 
 hang = eat
 
-endGame (Village a d w) | length (a `intersect` w) >=  
-                          length (a \\ w) 
+endGame (Village a d w) | length (a `intersect` w) >= length (a \\ w) 
                                            = Werewolves
                         | all (`elem` d) w = Villagers
                         | otherwise        = None
@@ -38,17 +37,20 @@ aWerewolf10Villagers ww = (Village "ABCDEFGHIJK" "" [ww])
 
 numberOfVillagers num = oneWerewolf10Villagers
 
-startup :: Village -> [String] -> (Engine, ([String], Village))
-startup v@(Village a d w) input = (nightTurn,([w,w],v))
-
+-- Engine 
 nightTurn = E "night" night
 dayTurn   = E "day" day
+
+startup :: Village -> [String] -> (Engine, ([String], Village))
+startup v@(Village a d w) input = (nightTurn,([w,w],v))
 
 night :: Village -> [String] -> (Engine, ([String], Village))
 night v [killed] = (dayTurn, ([killed], eat (head killed) v))
 
 day :: Village -> [String] -> (Engine, ([String], Village))
 day v [killed] = (nightTurn, ([killed], eat (head killed) v))
+
+-- Decision
 
 werewolfEatsAVillager (Village a d w) rand =   
   let aliveVillagers = (a \\ w) 
@@ -62,9 +64,6 @@ engine e []       = []
 engine e (s:rest) = let (cont, (o, v)) = e [s]
                     in o ++ engine (run cont v) rest  
 
-inverseFrequence :: (Int, a) -> (Int,a) -> Ordering
-inverseFrequence (n,_) (n',_) = n' `compare` n
-
 villagerHangsAWerewolf (Village a d w) rand v = 
   let otherVillagers = if v `elem` w then 
                          (a \\ w) 
@@ -75,11 +74,14 @@ villagerHangsAWerewolf (Village a d w) rand v =
   in
    (rand', selected)
 
+inverseFrequence :: (Int, a) -> (Int,a) -> Ordering
+inverseFrequence (n,_) (n',_) = n' `compare` n
+
 villagersVote userVote v@(Village a d w) rand = 
-  (rand', (snd . head . sortBy inverseFrequence) (userVote:votes))
+  (rand', (snd . head . sortBy inverseFrequence) votes)
   where
     allVillagersExceptUser                      =  a \\ "A"
-    (rand', votes)                              = accumulateVotes [] v allVillagersExceptUser w rand 
+    (rand', votes)                              = accumulateVotes [userVote] v allVillagersExceptUser w rand 
     
     accumulateVotes votes village []     w rand = (rand, (map (\l -> (length l, head l)) . group . sort) votes)
     accumulateVotes votes village (v:vs) w rand = let (rand', vote) = villagerHangsAWerewolf village rand v 
@@ -147,7 +149,7 @@ gameEngineTests = TestList [
   \(_,c) -> assertBool "werewolf should not select a werewolf" (c == 'C'),
   
   "villagers vote for the hanged villager" ~:
-  newStdGen >>=  (return . villagersVote (1,'C') (Village "ABCDE" "" "AB")) >>=
+  newStdGen >>=  (return . villagersVote ('C') (Village "ABCDE" "" "AB")) >>=
   \(_,c) -> assertBool "villagers vote for a hanged villager" (c `elem` "ABCDE")
   
   ]
