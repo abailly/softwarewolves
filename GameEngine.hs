@@ -5,8 +5,14 @@ import System.Exit
 import System.IO
 import Data.List
 
+data Village = Village {
+  alive :: String,
+  dead  :: String,
+  werewolves :: String
+  } deriving (Eq,Show,Read)
+             
 -- CODE 
-eat villager (alive, dead) = (delete villager alive, villager : dead)
+eat villager (Village alive dead ww) = Village (delete villager alive) (villager : dead) ww
 hang = eat
 
 -- TESTS
@@ -14,13 +20,13 @@ hang = eat
 gameEngineTests = TestList [
   "when a player is designated for eating, it is removed from the villagers and added to dead" ~:
   TestList [
-    eat 'B' ("BCD","") ~?= ("CD","B"),
-    eat 'C' ("BCD","E") ~?= ("BD","CE")  
+    eat 'B' (Village "BCD" "" "A") ~?= (Village "CD" "B" "A"),
+    eat 'C' (Village "BCD" "E" "A") ~?= (Village "BD" "CE" "A")  
     ],
   "when a player is designated for hanging, it is removed from the villagers and added to dead" ~:
   TestList [
-    hang 'C' ("BCD","") ~?= ("BD","C"),
-    hang 'D' ("BCD","F") ~?= ("BC","DF")  
+    hang 'C' (Village "BCD" "" "A") ~?= (Village "BD" "C" "A"),
+    hang 'D' (Village "BCD" "F" "A") ~?= (Village "BC" "DF" "A")  
     ]
   ]
                   
