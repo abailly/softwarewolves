@@ -16,7 +16,7 @@ data GameStatus = Villagers |
                   None 
                   deriving (Eq, Show, Read)
 
-newtype Engine = E { run :: [String] -> (Engine, [String]) }
+newtype Engine = E { run :: Village -> [String] -> (Engine, ([String], Village)) }
 
 -- CODE 
 eat villager (Village alive dead ww) = Village (delete villager alive) (villager : dead) ww
@@ -31,8 +31,11 @@ oneWerewolf10Villagers = (Village "ABCDEFGHIJK" "" "A")
 
 numberOfVillagers num = oneWerewolf10Villagers
 
-engine :: [String] -> (Engine, [String])
-engine input = (E engine,["A","A"])
+startup :: [String] -> (Engine, ([String], Village))
+startup input = (E $ playWerewolf,(["A","A"], oneWerewolf10Villagers))
+
+playWerewolf :: Village -> [String] -> (Engine, ([String], Village))
+playWerewolf v [killed] = (E $ playWerewolf, ([killed], eat (head killed) v))
 
 -- TESTS
 
@@ -66,8 +69,11 @@ gameEngineTests = TestList [
     numberOfVillagers "12" ~?= oneWerewolf10Villagers
     ],
   
-  "engine first reads number of villagers then output werewolves" ~: 
-  snd (engine ["5"]) ~?= ["A","A"]
+  "startup first reads number of villagers then output werewolves" ~: 
+  (fst. snd. startup) ["5"] ~?= ["A","A"],
+  
+  "playing night turn reads villager killed and output villager killed and updated Village" ~:
+  (snd.playWerewolf oneWerewolf10Villagers) ["B"] ~?= (["B"],eat 'B' oneWerewolf10Villagers)
   ]
                   
 newtype Tests = T {unT :: Test}
