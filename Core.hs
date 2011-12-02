@@ -7,8 +7,7 @@ main = hSetBuffering stdout NoBuffering >> do
   rand   <- newStdGen
   
   let (num,_) = next rand
- --let ww = "ABCDEFGHIJK" !! (num `mod` 11)
-  let ww = 'A'
+  let ww = "ABCDEFGHIJK" !! (num `mod` 11)
   let village = aWerewolf10Villagers ww
   
   input <- getLine
